@@ -29,10 +29,10 @@ export function GeneratingStep({ data, updateData, onComplete }: GeneratingStepP
         clearTimeout(timeoutRef.current)
       }
 
-      // Set a timeout to handle stuck requests
+      // Set a timeout to handle stuck requests (now 90 seconds)
       timeoutRef.current = setTimeout(() => {
-        setError("Generation is taking longer than expected. Please try the client-side fallback.")
-      }, 15000) // 15 seconds timeout
+        setError("Generation timed out after 90 seconds. Please try again or use the client-side fallback.")
+      }, 90000) // 90 seconds timeout
 
       // Update status and progress for better UX
       const statuses = [
@@ -43,17 +43,13 @@ export function GeneratingStep({ data, updateData, onComplete }: GeneratingStepP
         "Compositing layers...",
         "Finalizing thumbnail...",
       ]
-
-      // Show initial status
       setStatus(statuses[0])
       setProgress(10)
 
-      // Validate required data
       if (!data.hostImageUrl) {
         throw new Error("Host image is required")
       }
 
-      // Simulate progress through the steps while waiting for the API
       let currentStep = 0
       const progressInterval = setInterval(() => {
         if (currentStep < statuses.length - 1) {
@@ -65,130 +61,77 @@ export function GeneratingStep({ data, updateData, onComplete }: GeneratingStepP
         }
       }, 1000)
 
-      try {
-        // Make the API call with all the necessary data
-        const response = await fetch("/api/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            style: data.style,
-            realism: data.realism,
-            title: data.title,
-            hostImageUrl: data.hostImageUrl,
-            guestImageUrls: data.guestImageUrls,
-          }),
-        })
-
-        // Clear the progress interval
+      // 1. Start the async job
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          style: data.style,
+          realism: data.realism,
+          title: data.title,
+          hostImageUrl: data.hostImageUrl,
+          guestImageUrls: data.guestImageUrls,
+        }),
+      })
+      if (!response.ok) {
         clearInterval(progressInterval)
+        throw new Error("Failed to start generation job")
+      }
+      const { generationId, success } = await response.json()
+      if (!success || !generationId) {
+        clearInterval(progressInterval)
+        throw new Error("Failed to start generation job")
+      }
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.message || `API request failed with status ${response.status}`)
-        }
-
-        const result = await response.json()
-
-        if (!result.success) {
-          throw new Error(result.message || "Generation failed")
-        }
-
-        // Clear the timeout since we got a response
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-          timeoutRef.current = null
-        }
-
-        // Update with the generation result
-        updateData({
-          generationId: result.generationId,
-          thumbnailUrl: result.thumbnailUrl,
-          squareArtworkUrl: result.squareArtworkUrl,
-          refinedTitle: result.refinedTitle,
-        })
-
-        // Show progress through the steps
-        setStatus("Thumbnail generated successfully!")
-        setProgress(100)
-
-        // Complete the generation
-        setTimeout(() => {
-          onComplete()
-        }, 1000)
-      } catch (apiError) {
-        console.error("API generation failed, falling back to client-side generation:", apiError)
-        
-        // Try client-side generation as fallback
-        try {
-          setStatus("Falling back to client-side generation...")
-          
-          // Generate YouTube thumbnail
-          const thumbnailUrl = await generateClientThumbnail(
-            {
-              hostImageUrl: data.hostImageUrl,
-              guestImageUrls: data.guestImageUrls,
-              title: data.title,
-              style: data.style,
-              realism: data.realism,
-            },
-            "youtube",
-          )
-
-          // Generate square artwork
-          const squareArtworkUrl = await generateClientThumbnail(
-            {
-              hostImageUrl: data.hostImageUrl,
-              guestImageUrls: data.guestImageUrls,
-              title: data.title,
-              style: data.style,
-              realism: data.realism,
-            },
-            "square",
-          )
-
-          // Update with the client-side generation result
+      // 2. Poll for job status
+      let pollCount = 0
+      let finished = false
+      while (!finished && pollCount < 30) { // 30 * 3s = 90s
+        await new Promise((res) => setTimeout(res, 3000))
+        pollCount++
+        const pollRes = await fetch(`/api/generation/${generationId}`)
+        if (!pollRes.ok) continue
+        const pollData = await pollRes.json()
+        if (pollData.status === "complete") {
+          clearInterval(progressInterval)
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+          }
+          setError(null)
           updateData({
-            generationId: `client_${Date.now()}`,
-            thumbnailUrl,
-            squareArtworkUrl,
+            generationId: pollData.result.generationId,
+            thumbnailUrl: pollData.result.thumbnailUrl,
+            squareArtworkUrl: pollData.result.squareArtworkUrl,
+            refinedTitle: pollData.result.refinedTitle,
           })
-
-          setStatus("Client-side thumbnail generated successfully!")
+          setStatus("Thumbnail generated successfully!")
           setProgress(100)
-
           setTimeout(() => {
             onComplete()
           }, 1000)
-        } catch (clientError) {
-          console.error("Client-side generation failed:", clientError)
-          throw new Error("Both API and client-side generation failed. Please try again.")
+          finished = true
+        } else if (pollData.status === "failed") {
+          clearInterval(progressInterval)
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+          }
+          setError(pollData.error || "Generation failed. Please try again or use the client-side fallback.")
+          finished = true
         }
+      }
+      if (!finished) {
+        clearInterval(progressInterval)
+        setError("Generation timed out after 90 seconds. Please try again or use the client-side fallback.")
       }
     } catch (error) {
       console.error("Error generating thumbnail:", error)
-
-      // Clear the timeout if it exists
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null
       }
-
-      // Set error state
       setError(error instanceof Error ? error.message : "Failed to generate thumbnail")
-
-      // Log detailed error information
-      console.log("Generation error details:", {
-        style: data.style,
-        realism: data.realism,
-        title: data.title,
-        hostImageUrl: data.hostImageUrl ? "present" : "missing",
-        guestImageUrls: data.guestImageUrls ? data.guestImageUrls.length : 0,
-        error: error instanceof Error ? error.message : String(error),
-      })
-
-      // Show error toast
       toast({
         title: "Generation Failed",
         description: error instanceof Error ? error.message : "Failed to generate thumbnail",

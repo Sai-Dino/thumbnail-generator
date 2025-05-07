@@ -14,12 +14,12 @@
 ## 2 Page Wireframes (description)
 - **Landing Page**
   - Hero banner with instant demo GIF.
-  - “Generate free thumbnail” CTA.
+  - "Generate free thumbnail" CTA.
   - Social proof logos + FAQ accordion.
 - **Generator Wizard (3‑step modal)**
   1. Upload faces → inline crop preview.
   2. Select style + realism slider (vertical).
-  3. Title section: “Have title / Need title”.
+  3. Title section: "Have title / Need title".
   - Progress bar top.
 - **Canvas Editor**
   - Left sidebar = Layers list.
@@ -40,7 +40,7 @@
 | Upload Card | idle / drag‑over / uploading / error | Shows thumbnail preview w/ remove icon. |
 | Modal | base / oversized | Uses Radix Dialog under hood. |
 | Layer Chip | selected / hover / locked | Icon + layer name; reorder via drag. |
-| Badge | default | “Made with AIP” — hidden when user on paid tier. |
+| Badge | default | "Made with AIP" — hidden when user on paid tier. |
 
 ## 4 Interaction & Motion
 - Drag & Drop: Snap‑to‑grid 8 px; show blue guide lines when near edge.
@@ -53,23 +53,23 @@
 |---|---|
 | Keyboard nav | All controls reachable via Tab; visible focus outline (#FF6B00, 2 px). |
 | Contrast | Text contrast ≥ 4.5:1 vs bg. |
-| Alt text | Generated assets have alt: “Podcast thumbnail preview”. |
+| Alt text | Generated assets have alt: "Podcast thumbnail preview". |
 | Motion | Prefers‑reduced‑motion → disable slider easing, crossfades. |
 
 ## 6 Empty, Error & Edge States
 | Context | Message / UI |
 |---|---|
-| No faces uploaded | Placeholder illustration + “Drag images here”. |
-| Upload fail | Toast: “File too large (>10 MB) or unsupported format”. |
-| Generation timeout | Modal: “Our GPUs are busy, please retry in a minute.” + Retry CTA. |
-| Safety checker fail | “Image blocked for safety. Try another style or seed.” |
+| No faces uploaded | Placeholder illustration + "Drag images here". |
+| Upload fail | Toast: "File too large (>10 MB) or unsupported format". |
+| Generation timeout | Modal: "Our GPUs are busy, please retry in a minute." + Retry CTA. |
+| Safety checker fail | "Image blocked for safety. Try another style or seed". |
 
 ## 7 Sample Prompt Table (per style)
 | Style ID | Prompt snippet | BG variants |
 |---|---|---|
-| photo_cine | “cinematic portrait, realistic lighting, depth of field” | dark gradient, studio backdrop |
-| semi_edi | “editorial illustration, flat shading, muted palette” | off‑white texture, paper grain |
-| bold_split | “vector pop‑art, split complementary colors, bold outlines” | diagonal split – orange/teal |
+| photo_cine | "cinematic portrait, realistic lighting, depth of field" | dark gradient, studio backdrop |
+| semi_edi | "editorial illustration, flat shading, muted palette" | off‑white texture, paper grain |
+| bold_split | "vector pop‑art, split complementary colors, bold outlines" | diagonal split – orange/teal |
 
 ## 8 Analytics Events (Frontend)
 | Event | Payload |

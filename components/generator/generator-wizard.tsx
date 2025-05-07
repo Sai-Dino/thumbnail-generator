@@ -11,10 +11,12 @@ import { EditorStep } from "./steps/editor-step"
 import { WizardProgress } from "./wizard-progress"
 import { Toaster } from "@/components/ui/toaster"
 import { debugLog } from "@/lib/debug"
+import { LayoutStep } from "./steps/layout-step"
 
-type WizardStep = "upload" | "style" | "title" | "generating" | "editor"
+type WizardStep = "layout" | "upload" | "style" | "title" | "generating" | "editor"
 
 export type WizardData = {
+  layout?: string
   hostImageUrl?: string
   guestImageUrls?: string[]
   style: string
@@ -27,8 +29,9 @@ export type WizardData = {
 }
 
 export function GeneratorWizard() {
-  const [step, setStep] = useState<WizardStep>("upload")
+  const [step, setStep] = useState<WizardStep>("layout")
   const [data, setData] = useState<WizardData>({
+    layout: undefined,
     guestImageUrls: [],
     style: "photo_cine",
     realism: 75,
@@ -42,7 +45,7 @@ export function GeneratorWizard() {
   }
 
   const goToNextStep = () => {
-    const steps: WizardStep[] = ["upload", "style", "title", "generating", "editor"]
+    const steps: WizardStep[] = ["layout", "upload", "style", "title", "generating", "editor"]
     const currentIndex = steps.indexOf(step)
     if (currentIndex < steps.length - 1) {
       const nextStep = steps[currentIndex + 1]
@@ -52,7 +55,7 @@ export function GeneratorWizard() {
   }
 
   const goToPreviousStep = () => {
-    const steps: WizardStep[] = ["upload", "style", "title", "generating", "editor"]
+    const steps: WizardStep[] = ["layout", "upload", "style", "title", "generating", "editor"]
     const currentIndex = steps.indexOf(step)
     if (currentIndex > 0) {
       const prevStep = steps[currentIndex - 1]
@@ -76,6 +79,7 @@ export function GeneratorWizard() {
           )}
 
           <div className="z-10 relative" style={{ pointerEvents: "all" }}>
+            {step === "layout" && <LayoutStep data={data} updateData={updateData} onNext={goToNextStep} />}
             {step === "upload" && <UploadStep data={data} updateData={updateData} onNext={goToNextStep} />}
 
             {step === "style" && (

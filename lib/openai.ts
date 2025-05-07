@@ -165,3 +165,42 @@ export async function refineTitle(title: string): Promise<string> {
     return title
   }
 }
+
+// Describe a person in an image using GPT-4o Vision
+export async function describePersonInImage(imageUrl: string): Promise<string> {
+  try {
+    if (!openai) throw new Error("OpenAI client is not initialized");
+    if (!imageUrl) throw new Error("No image URL provided");
+
+    // Download the image as a buffer
+    const res = await fetch(imageUrl);
+    if (!res.ok) throw new Error(`Failed to fetch image: ${res.statusText}`);
+    const arrayBuffer = await res.arrayBuffer();
+    const base64Image = Buffer.from(arrayBuffer).toString("base64");
+
+    // Send to GPT-4o Vision for description
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful assistant that describes people in images for podcast thumbnails. Focus on physical appearance, facial features, expression, and notable details. Be concise but specific."
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Describe the person in this image for use in an AI-generated podcast thumbnail. Focus on their appearance, expression, and any notable features. Do not guess their name." },
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+          ]
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.4,
+    });
+    const description = completion.choices[0]?.message?.content?.trim();
+    return description || "person";
+  } catch (error: unknown) {
+    console.error("Error describing person in image:", error as any);
+    return "person";
+  }
+}
