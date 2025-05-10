@@ -63,8 +63,13 @@ export function LayoutStep({ data, updateData, onNext }: {
             className={`border rounded-lg p-4 cursor-pointer transition-all ${selected === opt.id ? "border-primary ring-2 ring-primary" : "border-gray-200 hover:border-primary"}`}
             onClick={() => handleSelect(opt.id)}
           >
-            <div className="mb-3 h-32 flex items-center justify-center bg-gray-50 rounded">
-              <img src={opt.preview} alt={opt.name} className="h-full object-contain" />
+            <div className="mb-3 w-full aspect-[16/9] overflow-hidden rounded">
+              <img
+                src={opt.preview}
+                alt={opt.name}
+                className="w-full h-full object-cover"
+                style={{ display: 'block' }}
+              />
             </div>
             <div className="font-semibold mb-1">{opt.name}</div>
             <div className="text-sm text-gray-500">{opt.description}</div>
